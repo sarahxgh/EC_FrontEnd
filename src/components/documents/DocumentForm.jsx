@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { FormDialog } from '@/components/ui/form-dialog';
 import { Label } from '@/components/ui/label';
@@ -6,16 +5,24 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 
-export const DocumentForm = ({ isOpen, onClose, onSubmit, initialData, isSubmitting }) => {
+
+export const DocumentForm = ({
+  isOpen,
+  onClose,
+  onSubmit,
+  initialData,
+  isSubmitting,
+  categories = [],
+}) => {
   const [formData, setFormData] = useState({
     id: null,
     name: '',
     owner: '',
     status: 'Draft',
+    category: '',
     description: '',
   });
 
-  // Update form data when initialData changes
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -23,15 +30,16 @@ export const DocumentForm = ({ isOpen, onClose, onSubmit, initialData, isSubmitt
         name: initialData.name || '',
         owner: initialData.owner || '',
         status: initialData.status || 'Draft',
+        category: initialData.category || '',
         description: initialData.description || '',
       });
     } else {
-      // Reset form for new document
       setFormData({
         id: null,
         name: '',
         owner: '',
         status: 'Draft',
+        category: '',
         description: '',
       });
     }
@@ -99,6 +107,25 @@ export const DocumentForm = ({ isOpen, onClose, onSubmit, initialData, isSubmitt
               <SelectItem value="Draft">Draft</SelectItem>
               <SelectItem value="Sent">Sent</SelectItem>
               <SelectItem value="Signed">Signed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="category">Category</Label>
+          <Select
+            value={formData.category}
+            onValueChange={(value) => handleSelectChange('category', value)}
+          >
+            <SelectTrigger id="category">
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>

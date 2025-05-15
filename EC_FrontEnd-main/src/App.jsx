@@ -28,12 +28,12 @@ const App = () => (
             
             {/* Admin only routes */}
             <Route path="/users" element={
-              <ProtectedRoute requiredRoles={["admin"]}>
+              <ProtectedRoute requiredRoles={["ROLE_ADMIN"]}>
                 <UserManagement />
               </ProtectedRoute>
             } />
             <Route path="/documents" element={
-              <ProtectedRoute requiredRoles={["admin"]}>
+              <ProtectedRoute requiredRoles={["ROLE_ADMIN"]}>
                 <DocumentManagement />
               </ProtectedRoute>
             } />

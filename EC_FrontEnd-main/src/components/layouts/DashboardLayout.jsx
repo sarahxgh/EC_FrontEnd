@@ -1,4 +1,3 @@
-
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   Users, 
@@ -39,7 +38,23 @@ const DashboardLayout = ({ children }) => {
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
-  const isAdmin = user?.role === "admin";
+  // Check if user has a specific role
+  const hasRole = (role) => {
+    // If user.roles is an array (from JWT token)
+    if (Array.isArray(user?.roles)) {
+      return user.roles.includes(role);
+    }
+    // Fallback to single role string (legacy support)
+    return user?.role === role;
+  };
+
+  // Check if user has admin role
+  const isAdmin = hasRole("ROLE_ADMIN");
+
+  // Check if user has any of the specified roles
+  const hasAnyRole = (...roles) => {
+    return roles.some(role => hasRole(role));
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -52,7 +67,6 @@ const DashboardLayout = ({ children }) => {
             <FolderOpen className="w-6 h-6" />
           </Link>
           
-
           <Link to="#" className="text-gray-400 hover:text-gray-600">
             <Calendar className="w-6 h-6" />
           </Link>
@@ -69,14 +83,12 @@ const DashboardLayout = ({ children }) => {
             </>
           )}
           
-
           <Link to="/profile" className={`${isActive('/profile') ? 'text-blue-600' : 'text-gray-400 hover:text-gray-600'}`}>
             <User className="w-6 h-6" />
           </Link>
           <Link to="#" className="text-gray-400 hover:text-gray-600">
             <Settings className="w-6 h-6" />
           </Link>
-
           
           {/* Logout button at the bottom of sidebar */}
           <div className="mt-auto">
@@ -123,7 +135,11 @@ const DashboardLayout = ({ children }) => {
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                 </Button>
                 <div className="flex items-center space-x-2">
-                  <span className="text-xs text-gray-500">{user?.role || 'User'}</span>
+                  <span className="text-xs text-gray-500">
+                    {Array.isArray(user?.roles) 
+                      ? user.roles.join(', ') 
+                      : user?.role || 'User'}
+                  </span>
                   <span className="text-xs text-gray-500">•</span>
                   <span className="text-xs text-gray-500">{user?.email || 'user@example.com'}</span>
                   <Avatar className="h-8 w-8">

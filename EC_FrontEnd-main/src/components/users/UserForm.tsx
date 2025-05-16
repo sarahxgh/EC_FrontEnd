@@ -2,11 +2,13 @@ import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FormDialog } from '@/components/ui/form-dialog';
+import axios from '@/lib/axios';
 
 export interface UserFormData {
   id?: number;
   name: string;
   email: string;
+  password?: string; // Added for registration
   status: 'active' | 'inactive' | 'idle';
   departments: number[];
 }
@@ -22,12 +24,13 @@ interface UserFormProps {
   onSubmit: (data: UserFormData) => void;
   initialData?: UserFormData;
   isSubmitting?: boolean;
-  departmentsList: Department[]; // List of available departments
+  departmentsList: Department[];
 }
 
 const defaultFormData: UserFormData = {
   name: '',
   email: '',
+  password: '', // We'll inject default password only on submit
   status: 'active',
   departments: [],
 };
@@ -68,9 +71,32 @@ export function UserForm({
     setFormData((prev) => ({ ...prev, departments: selectedOptions }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+
+    // Use default password if creating a new user and password is empty
+    const submissionData = {
+      ...formData,
+      password:
+        initialData?.id || formData.password
+          ? formData.password
+          : 'defaultPassword123',
+    };
+
+    try {
+      if (!initialData) {
+        // Register new user via backend with password (default or user input)
+        await axios.post('auth/register', {
+          email: submissionData.email,
+          password: submissionData.password,
+        });
+      }
+
+      // Send form data to parent for local UI updates
+      onSubmit(submissionData);
+    } catch (error) {
+      console.error('Error submitting user form:', error);
+    }
   };
 
   const isEditing = Boolean(initialData?.id);
@@ -108,6 +134,22 @@ export function UserForm({
           />
         </div>
 
+        {/* Password field is only visible when editing is false */}
+        {/* Removed password input to always default password on submit */}
+        {/* {!isEditing && (
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              name="password"
+              type="password"
+              value={formData.password || ''}
+              onChange={handleChange}
+              required
+            />
+          </div>
+        )} */}
+
         <div className="grid gap-2">
           <Label htmlFor="status">Status</Label>
           <select
@@ -129,7 +171,7 @@ export function UserForm({
             id="departments"
             name="departments"
             multiple
-            value={formData.departments.map(String)} // value must be string[]
+            value={formData.departments.map(String)}
             onChange={handleDepartmentsChange}
             className="flex h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
@@ -139,7 +181,9 @@ export function UserForm({
               </option>
             ))}
           </select>
-          <p className="text-sm text-muted-foreground">You can leave this empty or select multiple.</p>
+          <p className="text-sm text-muted-foreground">
+            You can leave this empty or select multiple.
+          </p>
         </div>
       </div>
     </FormDialog>

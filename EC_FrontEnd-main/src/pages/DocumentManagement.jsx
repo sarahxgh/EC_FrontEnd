@@ -5,6 +5,7 @@ import { Edit, Download, Trash, FilePlus } from "lucide-react";
 import { DataTable } from "@/components/ui/data-table";
 import { DocumentForm } from "@/components/documents/DocumentForm";
 import { toast } from "sonner";
+import axios from 'axios';
 
 // Mock document data
 const mockDocuments = [
@@ -78,19 +79,38 @@ const DocumentManagement = () => {
   const handleFormSubmit = (data) => {
     setIsSubmitting(true);
     setTimeout(() => {
-      if (data.id) {
-        setDocuments(documents.map(doc => doc.id === data.id ? { ...doc, ...data } : doc));
-        toast.success("Document updated successfully");
-      } else {
-        const newDocument = {
-          ...data,
-          id: Math.max(...documents.map(d => d.id), 0) + 1,
-          dateCreated: new Date().toLocaleDateString(),
-          modified: "Just now"
-        };
-        setDocuments([...documents, newDocument]);
-        toast.success("Document added successfully");
-      }
+      console.log("the data to be sent", data);
+        // send request to create document using axios 
+        axios.post('http://localhost:8081/documents/create',data
+          ,
+          {
+            headers: {
+              'Authorization': `Bearer `+localStorage.getItem('token')
+            }
+          }
+        ).then(response => {
+            console.log(response.data);
+            if (response.data == "Document created successfully.") {
+              if (data.id) {
+              setDocuments(documents.map(doc => doc.id === data.id ? { ...doc, ...data } : doc));
+              toast.success("Document updated successfully");
+              } else {
+              const newDocument = {
+                ...data,
+                id: Math.max(...documents.map(d => d.id), 0) + 1,
+                dateCreated: new Date().toLocaleDateString(),
+                modified: "Just now"
+              };
+              setDocuments([...documents, newDocument]);
+              toast.success("Document added successfully");
+            }
+          }else {
+            toast.success("Something wrong happened");
+          }
+          })
+          .catch(error => {
+            console.error(error);
+          });
       setIsFormOpen(false);
       setIsSubmitting(false);
     }, 1000);

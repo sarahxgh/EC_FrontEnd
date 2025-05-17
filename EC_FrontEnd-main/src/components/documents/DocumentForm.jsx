@@ -17,9 +17,9 @@ export const DocumentForm = ({
   const [formData, setFormData] = useState({
     id: null,
     name: '',
-    owner: '',
+    owner: '', // display a list of emails of owners
     status: 'Draft',
-    category: '',
+    category: '', // display a list of emails of cats
     description: '',
   });
 

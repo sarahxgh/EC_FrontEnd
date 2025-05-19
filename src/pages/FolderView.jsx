@@ -112,7 +112,8 @@ const fetchDepartments = async () => {
     dep.name && dep.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const openFolder = (id, name) => navigate(`/folders/${id}`, { state: { departmentName: name } });
+  //navigte to the docuement view for the selected department
+  const openFolder = (id, name) => navigate(`/folders/${id}`, { state: { departmentId: id, departmentName: name } });
 
   const handleCreate = async () => {
     if (!newName.trim()) {

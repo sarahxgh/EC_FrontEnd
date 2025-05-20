@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useLocation, useParams } from 'react-router-dom';
 import DashboardLayout from "@/components/layouts/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,16 @@ import { FolderOpen, Plus, Search, FileText, Trash, Edit } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentForm } from "@/components/documents/DocumentForm";
 import axios from "axios";
+import instance from "@/lib/axios";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/components/ui/dialog";
+
+
 
 // Add userId to initialDocs and dummy user documents
 const initialDocs = [
@@ -19,18 +29,15 @@ const initialDocs = [
   { id: 6, title: "Doc by U2", content: "This file is created by U2", departmentId: 3, userId: 1 },
 ];
 
-// Hardcode current userId for demo
-const currentUserId = 1;
+
 
 const DepartmentDocuments = () => {
+  // retreiving the id and the name from the route coming from folder
   const { id } = useParams();
   const location = useLocation();
   const departmentId = parseInt(id);
+  const departmentName = location.state?.departmentName;
 
-  const departmentName =
-    (location.state && location.state.departmentName) ||
-    new URLSearchParams(location.search).get("departmentName") ||
-    "";
 
   const [documents, setDocuments] = useState([]);
   const [userDocuments, setUserDocuments] = useState([]);
@@ -38,13 +45,43 @@ const DepartmentDocuments = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    const deptDocs = initialDocs.filter((doc) => doc.departmentId === departmentId);
-    setDocuments(deptDocs);
+  // for previwing the file when clikcing on it 
+  const [selectedDoc, setSelectedDoc] = useState(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
-    // Filter user documents (regardless of department)
-    const userDocs = initialDocs.filter((doc) => doc.userId === currentUserId);
-    setUserDocuments(userDocs);
+  const handlePreview = (doc) => {
+    setSelectedDoc(doc);
+    setIsPreviewOpen(true);
+  };
+
+  const fetchDoc = async () => {
+    try {
+      const departmentIdres = await axios.post(
+        'http://localhost:8081/documents/docperdepartment',
+        { depID: 1 },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (departmentIdres.data) {
+        const docsArray = Object.entries(departmentIdres.data).map(([title, url]) => ({
+          title,
+          url
+        }));
+        setUserDocuments(docsArray);
+      }
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchDoc();
   }, [departmentId]);
 
   const filtered = documents.filter((doc) =>
@@ -55,8 +92,11 @@ const DepartmentDocuments = () => {
     setIsFormOpen(true);
   };
 
+
+
   const handleFormSubmit = async (data) => {
     setIsSubmitting(true);
+    console.log("department id is", departmentId);
     try {
       const payload = { ...data, departmentId };
       const response = await axios.post(
@@ -97,7 +137,7 @@ const DepartmentDocuments = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">
-            Documents  Finance
+            Documents {departmentName}
           </h1>
           <Button onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" />
@@ -105,14 +145,16 @@ const DepartmentDocuments = () => {
           </Button>
         </div>
 
+        {/* here is the department docs container starts */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between mb-6">
+            {/* this is to display the department name */}
             <h2 className="text-xl font-medium">
-              Department Finance
               {departmentName && (
                 <span className="ml-2 text-gray-500">({departmentName})</span>
               )}
             </h2>
+            {/* here is for the seach of the documents inside the folder of the department */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -124,16 +166,19 @@ const DepartmentDocuments = () => {
             </div>
           </div>
 
+          {/* this container is used to display the list of the documents
+          filtered from the search operation inside the department folder */}
           {filtered.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              No documents found.
+              Nothing here ...
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map((doc) => (
                 <div
                   key={doc.id}
-                  className="border rounded-lg p-4 shadow-sm hover:shadow-md flex flex-col"
+                  className="border rounded-lg p-4 shadow-sm hover:shadow-md flex flex-col cursor-pointer"
+                  onClick={() => handlePreview(doc)}
                 >
                   <div className="flex justify-between mb-4">
                     <div className="flex-1 flex items-center">
@@ -145,14 +190,17 @@ const DepartmentDocuments = () => {
                         variant="ghost"
                         size="icon"
                         className="text-red-500"
-                        onClick={() => handleDelete(doc.id)}
+                        onClick={(e) => {
+                          e.stopPropagation(); // prevent triggering preview
+                          handleDelete(doc.id);
+                        }}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-3">{doc.content}</p>
                 </div>
+
               ))}
             </div>
           )}
@@ -160,8 +208,8 @@ const DepartmentDocuments = () => {
 
         {/* User Documents Section */}
         <div className="bg-white rounded-lg shadow p-6 mt-8">
-          <h2 className="text-xl font-medium mb-4"> Department Finance</h2>
-          
+          <h2 className="text-xl font-medium mb-4"> Department {departmentName}</h2>
+
           {userDocuments.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               No user documents found.
@@ -170,28 +218,67 @@ const DepartmentDocuments = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {userDocuments.map((doc) => (
                 <div
-                  key={doc.id}
-                  className="border rounded-lg p-4 shadow-sm hover:shadow-md flex flex-col"
+                  key={doc.title}
+                  className="border rounded-lg p-4 shadow-sm hover:shadow-md flex flex-col cursor-pointer"
+                  onClick={() => handlePreview(doc)}
                 >
                   <div className="flex justify-between mb-4">
                     <div className="flex-1 flex items-center">
-                      <FileText className="h-10 w-10 text-blue-500 mr-3" />
+                      <FileText className="h-10 w-10 text-green-500 mr-3" />
                       <h3 className="font-medium truncate">{doc.title}</h3>
                     </div>
+                    <div className="flex space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(doc.title, departmentId); // 👈 pass title and department ID
+                        }}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 line-clamp-3">{doc.content}</p>
                 </div>
               ))}
             </div>
           )}
+
         </div>
 
-        <DocumentForm
-          isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          onSubmit={handleFormSubmit}
-          isSubmitting={isSubmitting}
-        />
+
+        {/* This is the file preview container that when clicking on the list it preview the file */}
+        {selectedDoc && (
+          <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+            <DialogContent className="max-w-4xl h-[100vh] flex flex-col">
+              <DialogHeader>
+                <DialogTitle>Preview: {selectedDoc.title}</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-hidden border rounded-md">
+                <iframe
+                  src={selectedDoc.url}
+                  title="PDF Preview"
+                  className="w-full h-full"
+                />
+              </div>
+              <DialogFooter>
+                <a
+                  href={selectedDoc.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="outline">Download PDF</Button>
+                </a>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* this is used so that to display the content of the form of adding a document */}
+        <DocumentForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} onSubmit={handleFormSubmit} isSubmitting={isSubmitting} />
       </div>
     </DashboardLayout>
   );

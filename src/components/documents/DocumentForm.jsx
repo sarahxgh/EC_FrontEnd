@@ -69,7 +69,8 @@ export const DocumentForm = ({
       submitLabel={initialData ? 'Update' : 'Create'}
       isSubmitting={isSubmitting}
     >
-      <div className="space-y-4">
+      <div className="flex flex-col max-h-[70vh]">
+        <div className="overflow-y-auto pr-2 space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">Document Name</Label>
           <Input
@@ -127,7 +128,7 @@ export const DocumentForm = ({
             </SelectContent>
           </Select>
         </div>
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <Label htmlFor="file">Upload PDF</Label>
         <Input
           id="file"
@@ -140,7 +141,7 @@ export const DocumentForm = ({
           }}
           required={!initialData}
         />
-      </div>
+      </div> */}
         <div className="space-y-2">
           <Label htmlFor="description">Description (Optional)</Label>
           <Textarea
@@ -149,10 +150,12 @@ export const DocumentForm = ({
             value={formData.description}
             onChange={handleChange}
             placeholder="Enter document description"
-            rows={3}
+            rows={1}
           />
         </div>
       </div>
+      </div>
+
     </FormDialog>
   );
 };
